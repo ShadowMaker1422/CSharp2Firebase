@@ -182,7 +182,8 @@
                     myChart.data.datasets[0].data.push(numericData);
 
                     // Keep only the last 10 data points
-                    if (myChart.data.labels.length > 10) {
+                    const maxDataPoints = 50;
+                    if (myChart.data.labels.length > maxDataPoints) {
                         myChart.data.labels.shift();
                         myChart.data.datasets[0].data.shift();
                     }
