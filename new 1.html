@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSharp2FireBase Data Display</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <h1>Data from Firebase:</h1>
+    <p id="dataDisplay">Loading...</p>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            projectId: "csharp2firebase",
+            databaseURL: "https://csharp2firebase-default-rtdb.firebaseio.com"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Get a reference to the database service
+        const database = firebase.database();
+
+        // Read data from the database
+        const dataRef = database.ref('Node/1/Name');
+        dataRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            document.getElementById('dataDisplay').textContent = data;
+        });
+    </script>
+</body>
+</html>
