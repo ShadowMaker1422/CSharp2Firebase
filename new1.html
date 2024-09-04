@@ -16,6 +16,7 @@
             background-color: #f4f4f4;
             margin: 0;
             padding: 0;
+            transition: background-color 0.3s ease;
         }
 
         .container {
@@ -25,6 +26,11 @@
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .container:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
 
         header {
@@ -34,6 +40,11 @@
 
         header h1 {
             color: #2c3e50;
+            transition: color 0.3s ease;
+        }
+
+        header h1:hover {
+            color: #3498db;
         }
 
         .data-display {
@@ -45,6 +56,11 @@
             font-size: 20px;
             font-weight: bold;
             color: #3498db;
+            transition: color 0.3s ease;
+        }
+
+        #dataDisplay:hover {
+            color: #2c3e50;
         }
 
         #errorDisplay {
@@ -55,12 +71,25 @@
             position: relative;
             height: 400px;
             width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .max-value-display {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #e74c3c;
         }
 
         footer {
             text-align: center;
             margin-top: 20px;
             color: #777;
+            transition: color 0.3s ease;
+        }
+
+        footer:hover {
+            color: #3498db;
         }
     </style>
 </head>
@@ -74,8 +103,14 @@
                 <p id="dataDisplay" class="loading">Loading...</p>
                 <p id="errorDisplay"></p>
             </section>
+            <section class="max-value-display">
+                <p>Max Value: <span id="maxValue">0</span></p>
+            </section>
             <section class="chart-container">
                 <canvas id="myChart"></canvas>
+            </section>
+            <section class="chart-container">
+                <canvas id="myChart2"></canvas>
             </section>
         </main>
         <footer>
@@ -83,6 +118,9 @@
         </footer>
     </div>
     <script>
+        let maxDataPoints = 50;
+        let maxValue = 0;
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded");
             
@@ -100,66 +138,11 @@
                 // Get a reference to the database service
                 const database = firebase.database();
 
-                // Create initial chart
+                // Create initial charts
                 const ctx = document.getElementById('myChart').getContext('2d');
-                const myChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: [],
-                        datasets: [{
-                            label: 'Firebase Data',
-                            data: [],
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 5,
-                            pointBackgroundColor: 'rgba(54, 162, 235, 1)'
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    unit: 'second'
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Time',
-                                    color: '#333',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Value',
-                                    color: '#333',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                labels: {
-                                    color: '#333',
-                                    font: {
-                                        size: 14
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+                const ctx2 = document.getElementById('myChart2').getContext('2d');
+                const myChart = createChart(ctx);
+                const myChart2 = createChart(ctx2);
 
                 // Read data from the database
                 const dataRef = database.ref('Node/1/Name');
@@ -176,23 +159,15 @@
                         throw new Error("Data from Firebase is not a number: " + data);
                     }
 
-                    // Update chart
-                    const now = new Date();
-                    myChart.data.labels.push(now);
-                    myChart.data.datasets[0].data.push(numericData);
-
-                    // Keep only the last 10 data points
-                    const maxDataPoints = 50;
-                    if (myChart.data.labels.length > maxDataPoints) {
-                        myChart.data.labels.shift();
-                        myChart.data.datasets[0].data.shift();
+                    // Update max value
+                    if (numericData > maxValue) {
+                        maxValue = numericData;
+                        document.getElementById('maxValue').textContent = maxValue;
                     }
 
-                    // Only update the chart if there are at least two data points
-                    if (myChart.data.labels.length > 1) {
-                        myChart.update();
-                        console.log("Chart updated successfully");
-                    }
+                    // Update charts
+                    updateChart(myChart, numericData);
+                    updateChart(myChart2, numericData);
                 }, (error) => {
                     console.error("Error fetching data:", error);
                     document.getElementById('errorDisplay').textContent = "Error fetching data: " + error.message;
@@ -204,6 +179,85 @@
                 document.getElementById('dataDisplay').textContent = "Failed to load data";
             }
         });
+
+        function createChart(ctx) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Firebase Data',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'second'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time',
+                                color: '#333',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Value',
+                                color: '#333',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#333',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(chart, data) {
+            const now = new Date();
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(data);
+
+            // Keep only the last maxDataPoints data points
+            if (chart.data.labels.length > maxDataPoints) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            // Only update the chart if there are at least two data points
+            if (chart.data.labels.length > 1) {
+                chart.update();
+                console.log("Chart updated successfully");
+            }
+        }
     </script>
 </body>
 </html>
